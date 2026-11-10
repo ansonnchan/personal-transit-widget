@@ -331,6 +331,18 @@ function timeLabel(epochSeconds) {
   return formatter.string(new Date(epochSeconds * 1000));
 }
 
+function timeListLabel(departures) {
+  const labels = departures.map((departure) => timeLabel(departure.time));
+  const suffixes = labels.map((label) => label.match(/\s+(AM|PM)$/i)?.[1] || "");
+  const sharedSuffix = suffixes[0] && suffixes.every((suffix) => suffix === suffixes[0])
+    ? suffixes[0]
+    : "";
+  const compactLabels = sharedSuffix
+    ? labels.map((label) => label.replace(/\s+(AM|PM)$/i, ""))
+    : labels;
+  return `${compactLabels.join(" · ")}${sharedSuffix ? ` ${sharedSuffix}` : ""}`;
+}
+
 function sourceLabel(result) {
   const ageMinutes = Math.max(0, Math.floor((Date.now() / 1000 - result.fetchedAt) / 60));
   if (result.source === "cached") return ageMinutes >= STALE_AFTER_MINUTES ? "STALE" : "CACHED";
@@ -356,7 +368,8 @@ function applyWidgetBasics(widget, commute) {
 
 function buildAccessoryWidget(item) {
   const { commute, result } = item;
-  const departure = catchableFor(item, 1)[0];
+  const departures = catchableFor(item, config.widgetFamily === "accessoryCircular" ? 1 : 3);
+  const departure = departures[0];
   const widget = new ListWidget();
   widget.addAccessoryWidgetBackground = true;
   applyWidgetBasics(widget, commute);
@@ -379,15 +392,31 @@ function buildAccessoryWidget(item) {
     return widget;
   }
 
-  const title = widget.addText(`${commute.route} · ${commute.name}`);
-  title.font = Font.semiboldSystemFont(12);
+  widget.setPadding(6, 8, 5, 8);
+  const header = widget.addStack();
+  header.centerAlignContent();
+  addRouteBadge(header, commute.route);
+  header.addSpacer(6);
+  const title = header.addText(commute.name);
+  title.font = Font.semiboldSystemFont(11);
   title.lineLimit = 1;
-  const detail = departure
-    ? `${timeLabel(departure.time)} · leave ${minutesLabel(departure.leaveMinutes)}`
-    : "No upcoming bus";
-  const detailText = widget.addText(detail);
-  detailText.font = Font.systemFont(11);
-  detailText.lineLimit = 1;
+
+  if (!departure) {
+    widget.addSpacer(3);
+    const empty = widget.addText("No upcoming buses");
+    empty.font = Font.systemFont(10);
+    return widget;
+  }
+
+  widget.addSpacer(2);
+  const times = widget.addText(timeListLabel(departures));
+  times.font = Font.semiboldSystemFont(11);
+  times.lineLimit = 1;
+
+  widget.addSpacer(1);
+  const leave = widget.addText(`Leave ${minutesLabel(departure.leaveMinutes)} · ${sourceLabel(result).toLowerCase()}`);
+  leave.font = Font.systemFont(9);
+  leave.lineLimit = 1;
   return widget;
 }
 
