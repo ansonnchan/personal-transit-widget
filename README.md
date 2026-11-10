@@ -32,8 +32,7 @@ That's the idea behind this project.
 
 ### 1. Copy the scripts
 
-Copy all three JavaScript files into the same Scriptable folder in iCloud Drive.
-The files must keep their original names because the main script imports the other
+Copy all three JavaScript files into the same Scriptable folder in iCloud Drive or in the Files app. A Scriptable folder will be automatically created once you download the app. The files must keep their original names because the main script imports the other
 two by name.
 
 If your Mac and iPhone use the same iCloud account, the easiest path is:
