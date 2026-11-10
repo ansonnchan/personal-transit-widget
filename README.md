@@ -1,168 +1,159 @@
 # Personal Transit Widget
 
-> Status: Early planning  
-> Visibility: Private personal project
+A personal TransLink departure widget for the iPhone Home Screen, built with
+[Scriptable](https://scriptable.app/). It does not need Xcode, an Apple Developer
+membership, App Store review, or weekly re-signing.
 
-A native iPhone app and Home Screen widget for checking a small set of frequently used TransLink buses without opening a full trip-planning app.
-
-The app focuses on saved combinations of **route, stop, and direction**. A bus route may therefore appear in several favourites when it is used at different stops or in different directions.
-
-## Problem
-
-For a small number of familiar trips, opening a maps app, searching for a destination, and inspecting transit options is unnecessary friction. This project should answer a narrower question immediately:
+The widget answers one small question:
 
 > Which of my regular buses can I realistically catch, and when should I leave?
 
-## Favourite trip model
+## MVP features
 
-Each saved favourite is independent and has its own identifier. The route number is not treated as unique.
+- Configures one regular trip with a route, stop, walking time, and safety buffer
+- Uses TransLink's supported GTFS-Realtime v3 feed
+- Accepts the familiar route number and five-digit number printed on the stop sign
+- Shows the next two or three catchable buses
+- Calculates `leave in` from walking time plus a safety buffer
+- Caches the last successful result and clearly marks cached or stale information
+- Stores the TransLink API key in the iPhone Keychain, not in the repository
+- Supports small and medium Scriptable widgets
+- Supports extra widget configurations through Scriptable's Widget Parameter field
 
-```swift
-struct FavouriteTrip: Identifiable {
-    let id: UUID
-    var name: String
-    var routeID: String
-    var routeLabel: String
-    var stopID: String
-    var stopName: String
-    var direction: String
-    var walkingMinutes: Int
-    var safetyBufferMinutes: Int
-    var sortOrder: Int
-    var isEnabled: Bool
+## What you need
+
+1. An iPhone with [Scriptable installed](https://apps.apple.com/app/scriptable/id1405459188).
+2. A personal [TransLink Open API key](https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/register).
+3. These three files from the [`scriptable`](./scriptable) folder:
+   - `TransitWidget.js`
+   - `TransitWidgetCore.js`
+   - `TransitWidgetData.js`
+
+## Install on your iPhone
+
+### 1. Copy the scripts
+
+Copy all three JavaScript files into the same Scriptable folder in iCloud Drive.
+The files must keep their original names because the main script imports the other
+two by name.
+
+If your Mac and iPhone use the same iCloud account, the easiest path is:
+
+```text
+iCloud Drive/
+└── Scriptable/
+    ├── TransitWidget.js
+    ├── TransitWidgetCore.js
+    └── TransitWidgetData.js
+```
+
+### 2. Complete the one-time setup
+
+Open Scriptable and run **TransitWidget** once. It asks for:
+
+- Your TransLink API key
+- A short name such as `To campus`
+- The route number, such as `49`
+- The five-digit stop number printed on the bus stop sign
+- An optional direction label, such as `UBC`
+- Walking time
+- Safety buffer
+- An optional GTFS direction ID (`0` or `1`)
+
+Most physical stops serve one direction, so leave the direction ID blank unless
+the widget shows trips for both directions.
+
+The API key is stored in the iPhone Keychain. It is never added to a script or
+written into the Git repository.
+
+### 3. Add the Home Screen widget
+
+1. Long-press an empty area of the Home Screen.
+2. Choose **Edit → Add Widget**.
+3. Find **Scriptable** and select a small or medium widget.
+4. Long-press the new widget and choose **Edit Widget**.
+5. Set **Script** to `TransitWidget`.
+6. Leave **Parameter** empty to use the trip saved during setup.
+
+You can now check departures without opening Scriptable. Tapping the widget opens
+the TransLink schedule page for the configured stop.
+
+## Add another trip
+
+Add another Scriptable widget and put a pipe-separated configuration in its
+**Parameter** field:
+
+```text
+To campus|49|50001|UBC|7|2|
+```
+
+The fields are:
+
+```text
+name|route|stop number|direction label|walking minutes|buffer minutes|direction ID
+```
+
+Direction ID is optional. The same configuration can also be supplied as JSON:
+
+```json
+{
+  "name": "To campus",
+  "route": "49",
+  "stopCode": "50001",
+  "direction": "UBC",
+  "walkingMinutes": 7,
+  "bufferMinutes": 2,
+  "directionId": 0
 }
 ```
 
-Examples:
+Every widget uses the same API key stored during the one-time setup.
 
-| Name | Route | Stop | Direction |
-| --- | --- | --- | --- |
-| To campus | 49 | Stop A | UBC |
-| To shops | 49 | Stop B | Metrotown |
-| Home after class | 49 | Stop C | Metrotown |
+## Refresh behaviour
 
-Exact duplicates may produce a warning, but the data model should not enforce uniqueness based only on the route.
+The script asks iOS to refresh after ten minutes, but iOS ultimately decides when
+Home Screen widgets run. The footer always shows whether the result came from the
+live feed, the local cache, or is stale, along with the last successful update time.
 
-## Planned features
+TransLink currently allows up to 1,000 API requests per day per key. A single widget
+requesting a ten-minute refresh stays well below that limit, but iOS timing and
+multiple widget instances can change the actual total.
 
-### Manage favourites
+## Development
 
-- Add a favourite bus trip
-- Edit its label, stop, route, direction, walking time, and safety buffer
-- Delete a favourite with confirmation
-- Reorder favourites
-- Temporarily hide a favourite without deleting it
-- Save the same route at multiple stops
-- Save both directions of the same route
+No dependencies are required. Run the pure JavaScript tests with:
 
-### Catchable departures
-
-For every prediction:
-
-```text
-time before leaving =
-predicted arrival
-- current time
-- walking time
-- safety buffer
+```bash
+npm test
 ```
 
-A bus that cannot reasonably be reached should be marked as uncatchable or skipped in favour of the next departure.
+`TransitWidgetData.js` contains a generated lookup from public stop and route labels
+to internal GTFS identifiers. To rebuild it from TransLink's latest static feed:
 
-### Widget
-
-The widget should show:
-
-- Favourite name
-- Route and direction
-- Next two or three catchable departures
-- "Leave in" time
-- Whether the value is real-time, scheduled, cached, or stale
-- Last successful update
-- Manual refresh action
-
-A small widget may show one selected favourite. A medium widget may show several favourites.
-
-### Reliability
-
-- Cache the last successful response
-- Never present stale data as current
-- Handle missing real-time predictions
-- Handle service alerts and cancelled trips
-- Distinguish routes that share a number but have different directions
-- Preserve favourites when the network is unavailable
-- Avoid silently deleting or replacing user configuration
-
-## Data source
-
-The initial implementation will use TransLink GTFS and GTFS-Realtime data. The personal API key must not be committed to the repository. Local secrets and generated configuration should be excluded through `.gitignore`.
-
-Google Maps routing is outside the initial scope because the first version operates on explicitly saved stops and routes rather than calculating arbitrary journeys.
-
-## Proposed architecture
-
-```text
-TransLink GTFS / GTFS-Realtime
-              ↓
-       Transit data client
-              ↓
- Filter by route + stop + direction
-              ↓
-     Shared cached predictions
-              ↓
-       iOS app + WidgetKit
+```bash
+curl -sS https://gtfs-static.translink.ca/gtfs/google_transit.zip \
+  -o /tmp/translink-google-transit.zip
+npm run update-data -- /tmp/translink-google-transit.zip
 ```
 
-The main app owns configuration and favourite management. The widget reads saved favourites and cached predictions through a shared App Group container.
+Commit the regenerated `scriptable/TransitWidgetData.js` file. Do not commit an API
+key or personal local configuration.
 
-## Initial milestones
+## MVP limitations
 
-### Milestone 1: Favourite management
+- Scriptable and iOS control the actual widget refresh schedule.
+- The bundled stop and route lookup should be regenerated when TransLink changes its
+  static GTFS identifiers.
+- The MVP shows bus arrival and leave times but does not yet show service alerts.
+- A full GTFS-Realtime feed is larger than the retired stop-specific RTTI response;
+  older phones may occasionally fall back to the cached result under memory pressure.
+- The widget is listed under Scriptable rather than under a custom App Store name.
 
-- Create the Xcode project
-- Define the favourite-trip model
-- Add, edit, delete, enable, disable, and reorder favourites
-- Persist data locally
-- Support repeated route numbers at different stops
+## TransLink data attribution
 
-### Milestone 2: Transit data
+Route and arrival data used in this product or service is provided by permission of
+TransLink. TransLink assumes no responsibility for the accuracy or currency of the
+Data used in this product or service.
 
-- Connect to TransLink
-- Retrieve departures for one saved favourite
-- Filter by stop, route, and direction
-- Calculate catchable departures
-- Cache the most recent valid result
-
-### Milestone 3: Widget
-
-- Add a WidgetKit extension
-- Select which favourites a widget displays
-- Show dynamic departure countdowns
-- Show update status and stale-data warnings
-- Add manual refresh
-
-### Later possibilities
-
-- Time-of-day favourite selection
-- Lock Screen widget
-- Live Activity for an active departure
-- Service alerts
-- Apple Watch support
-- "Leave now" notification
-- Optional nearby-stop suggestions
-
-## Non-goals for the first version
-
-- Full point-to-point route planning
-- Continuous location tracking
-- Public user accounts or synchronization
-- Supporting transit systems outside Metro Vancouver
-- Publishing an API key in the application or repository
-
-## Open decisions
-
-- Final project and app name
-- SwiftData versus a simpler local configuration store
-- Whether the first version searches all stops or starts with manually entered stop IDs
-- How widget refresh and manual refresh should interact
-- How aggressively to hide departures that may be too close to catch
+See TransLink's [developer resources](https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources)
+and [terms of use](https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/terms-of-use).
