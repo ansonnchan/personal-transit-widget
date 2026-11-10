@@ -18,6 +18,22 @@ It's a small inconvenience, but one I thought could be avoided. Instead of openi
 
 That's the idea behind this project.
 
+## Preview
+
+<table>
+  <tr>
+    <td align="center" valign="middle" width="50%">
+      <img src="./assets/edit-screen.jpg" alt="Form for adding or editing a saved bus" width="100%">
+    </td>
+    <td align="center" valign="middle" width="50%">
+      <img src="./assets/example-widget.jpg" alt="Transit widget showing three upcoming departures and leave times" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Set up a saved bus</strong><br><sub>Add the route, stop number, and optional direction details.</sub></td>
+    <td align="center"><strong>See when to leave</strong><br><sub>Check upcoming arrivals and catchable leave times at a glance.</sub></td>
+  </tr>
+</table>
 
 ## MVP features
 
