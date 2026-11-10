@@ -184,20 +184,11 @@ npm run update-data -- /tmp/translink-google-transit.zip
 Commit the regenerated `scriptable/TransitWidgetData.js` file. Do not commit an API
 key or personal local configuration.
 
-## MVP limitations
-
-- Scriptable and iOS control the actual widget refresh schedule.
-- The bundled stop and route lookup should be regenerated when TransLink changes its
-  static GTFS identifiers.
-- Scheduled fallback is bundled only for stops in `data/schedule-stops.json`; other
-  stops use realtime data and cache until they are added to that list and regenerated.
-- The MVP does not yet show service alerts.
-- Manual switching happens in Scriptable; Scriptable does not expose native
-  interactive buttons for changing a script widget's stored selection in place.
-- A full GTFS-Realtime feed is larger than the retired stop-specific RTTI response;
-  older phones may occasionally fall back to the cached result under memory pressure.
-- The widget is listed under Scriptable rather than under a custom App Store name.
-
+## Extended Features
+- Sometimes I can take either the 10 or 100 (same stop). An extended feature would be being able to group buses, merging their schedules together
+- More customer-friendly UI; easier ways to add, remove, edit 
+- Refreshing is dependent on IOS so could be a little delayed and not fully synchronized
+- The widget itself is under **Scriptable** and not on the **App Store**
 ## TransLink data attribution
 
 Route and arrival data used in this product or service is provided by permission of
