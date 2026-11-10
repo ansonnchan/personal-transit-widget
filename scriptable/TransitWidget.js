@@ -363,7 +363,7 @@ function buildAccessoryWidget(item) {
 
   if (config.widgetFamily === "accessoryInline") {
     const value = departure
-      ? `${commute.route} · bus ${minutesLabel(departure.arrivalMinutes)} · leave ${minutesLabel(departure.leaveMinutes)}`
+      ? `${commute.route} · ${timeLabel(departure.time)} · leave ${minutesLabel(departure.leaveMinutes)}`
       : `${commute.route} · no upcoming bus`;
     widget.addText(value).font = Font.mediumSystemFont(11);
     return widget;
@@ -373,7 +373,7 @@ function buildAccessoryWidget(item) {
     const route = widget.addText(commute.route);
     route.font = Font.boldSystemFont(13);
     route.centerAlignText();
-    const value = widget.addText(departure ? `${departure.arrivalMinutes}m` : "—");
+    const value = widget.addText(departure ? timeLabel(departure.time) : "—");
     value.font = Font.mediumSystemFont(13);
     value.centerAlignText();
     return widget;
@@ -383,7 +383,7 @@ function buildAccessoryWidget(item) {
   title.font = Font.semiboldSystemFont(12);
   title.lineLimit = 1;
   const detail = departure
-    ? `Bus ${minutesLabel(departure.arrivalMinutes)} · leave ${minutesLabel(departure.leaveMinutes)}`
+    ? `${timeLabel(departure.time)} · leave ${minutesLabel(departure.leaveMinutes)}`
     : "No upcoming bus";
   const detailText = widget.addText(detail);
   detailText.font = Font.systemFont(11);
@@ -432,7 +432,7 @@ function buildSingleWidget(item, position, total) {
     for (const departure of catchable) {
       const row = widget.addStack();
       row.centerAlignContent();
-      const arrival = row.addText(`${minutesLabel(departure.arrivalMinutes)} bus`);
+      const arrival = row.addText(timeLabel(departure.time));
       arrival.font = Font.semiboldSystemFont(14);
       arrival.textColor = Color.white();
       row.addSpacer();
@@ -487,7 +487,7 @@ function buildDashboardWidget(items) {
     name.lineLimit = 1;
     row.addSpacer();
     const value = row.addText(departure
-      ? `${departure.arrivalMinutes}m · leave ${minutesLabel(departure.leaveMinutes)}`
+      ? `${timeLabel(departure.time)} · leave ${minutesLabel(departure.leaveMinutes)}`
       : "—");
     value.font = Font.mediumSystemFont(11);
     value.textColor = departure?.leaveMinutes <= 1 ? new Color("#FFD500") : new Color("#BFD3EA");

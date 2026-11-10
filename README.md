@@ -14,7 +14,7 @@ The widget answers one small question:
 - Uses TransLink's supported GTFS-Realtime v3 feed
 - Combines realtime predictions with scheduled fallback for the bundled personal stops
 - Accepts the familiar route number and five-digit number printed on the stop sign
-- Shows the next two or three catchable buses
+- Shows the scheduled or predicted clock time for the next two or three catchable buses
 - Calculates `leave in` from walking time plus a safety buffer
 - Filters short-turn trips with an optional destination keyword
 - Caches the last successful result and clearly marks cached or stale information
