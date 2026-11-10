@@ -8,6 +8,16 @@ The widget answers one small question:
 
 > Which of my regular buses can I realistically catch, and when should I leave?
 
+## Why did I build this?
+
+I don't take public transit very often, but when I do, it's usually to familiar places like UBC, work, or a SkyTrain station. For these trips, I tend to take the same routes - the 49, the R4 etc.
+
+Yet every time I'm about to leave, I still find myself opening Google Maps or a transit app just to check when the next bus arrives.
+
+It's a small inconvenience, but one I thought could be avoided. Instead of opening an app and searching for the same route every time, what if I could just glance at my lock screen and know when to leave?
+
+That's the idea behind this project.
+
 ## MVP features
 
 - Configures one regular trip with a route, stop, walking time, and safety buffer
