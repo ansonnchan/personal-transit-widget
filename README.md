@@ -18,17 +18,6 @@ It's a small inconvenience, but one I thought could be avoided. Instead of openi
 
 That's the idea behind this project.
 
-## MVP features
-
-- Configures one regular trip with a route, stop, walking time, and safety buffer
-- Uses TransLink's supported GTFS-Realtime v3 feed
-- Accepts the familiar route number and five-digit number printed on the stop sign
-- Shows the next two or three catchable buses
-- Calculates `leave in` from walking time plus a safety buffer
-- Caches the last successful result and clearly marks cached or stale information
-- Stores the TransLink API key in the iPhone Keychain, not in the repository
-- Supports small and medium Scriptable widgets
-- Supports extra widget configurations through Scriptable's Widget Parameter field
 
 ## What you need
 
@@ -119,16 +108,6 @@ Direction ID is optional. The same configuration can also be supplied as JSON:
 
 Every widget uses the same API key stored during the one-time setup.
 
-## Refresh behaviour
-
-The script asks iOS to refresh after ten minutes, but iOS ultimately decides when
-Home Screen widgets run. The footer always shows whether the result came from the
-live feed, the local cache, or is stale, along with the last successful update time.
-
-TransLink currently allows up to 1,000 API requests per day per key. A single widget
-requesting a ten-minute refresh stays well below that limit, but iOS timing and
-multiple widget instances can change the actual total.
-
 ## Development
 
 No dependencies are required. Run the pure JavaScript tests with:
@@ -149,15 +128,6 @@ npm run update-data -- /tmp/translink-google-transit.zip
 Commit the regenerated `scriptable/TransitWidgetData.js` file. Do not commit an API
 key or personal local configuration.
 
-## MVP limitations
-
-- Scriptable and iOS control the actual widget refresh schedule.
-- The bundled stop and route lookup should be regenerated when TransLink changes its
-  static GTFS identifiers.
-- The MVP shows bus arrival and leave times but does not yet show service alerts.
-- A full GTFS-Realtime feed is larger than the retired stop-specific RTTI response;
-  older phones may occasionally fall back to the cached result under memory pressure.
-- The widget is listed under Scriptable rather than under a custom App Store name.
 
 ## TransLink data attribution
 
