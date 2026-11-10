@@ -219,6 +219,8 @@ function findDepartures(feed, options) {
   for (const routeId of options.routeIds) routeIds[String(routeId)] = true;
   const stopId = String(options.stopId);
   const directionId = options.directionId;
+  const destinationQuery = String(options.headsignContains || "").trim().toLowerCase();
+  const headsignByTrip = options.headsignByTrip || {};
   const now = options.nowSeconds || Math.floor(Date.now() / 1000);
   const departures = [];
   const seen = {};
@@ -228,6 +230,10 @@ function findDepartures(feed, options) {
     if (!routeIds[String(trip.routeId)]) continue;
     if (trip.scheduleRelationship === 3 || trip.scheduleRelationship === 7) continue;
     if (directionId !== null && directionId !== undefined && trip.directionId !== directionId) continue;
+    if (destinationQuery) {
+      const headsign = String(headsignByTrip[trip.tripId] || "").toLowerCase();
+      if (!headsign.includes(destinationQuery)) continue;
+    }
 
     for (const stop of update.stops) {
       if (String(stop.stopId) !== stopId || stop.scheduleRelationship === 1) continue;
@@ -241,12 +247,86 @@ function findDepartures(feed, options) {
         tripId: trip.tripId,
         routeId: trip.routeId,
         hasDelay: event.hasDelay,
+        kind: "realtime",
       });
     }
   }
 
   departures.sort((left, right) => left.time - right.time);
   return departures;
+}
+
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+}
+
+function isServiceActive(serviceId, date, calendars, exceptions) {
+  const key = dateKey(date);
+  const exception = exceptions[serviceId] && exceptions[serviceId][key];
+  if (exception === 1) return true;
+  if (exception === 2) return false;
+
+  const calendar = calendars[serviceId];
+  if (!calendar || key < calendar[7] || key > calendar[8]) return false;
+  const weekdayIndex = (date.getDay() + 6) % 7;
+  return Boolean(calendar[weekdayIndex]);
+}
+
+function findScheduledDepartures(scheduleEntries, transitData, options) {
+  if (!scheduleEntries || !scheduleEntries.length) return [];
+  const nowDate = options.nowDate || new Date();
+  const nowSeconds = Math.floor(nowDate.getTime() / 1000);
+  const horizonSeconds = (options.horizonMinutes || 240) * 60;
+  const directionId = options.directionId;
+  const destinationQuery = String(options.headsignContains || "").trim().toLowerCase();
+  const departures = [];
+
+  for (const dayOffset of [-1, 0, 1]) {
+    const serviceDate = new Date(
+      nowDate.getFullYear(),
+      nowDate.getMonth(),
+      nowDate.getDate() + dayOffset,
+      0,
+      0,
+      0,
+      0
+    );
+
+    for (const entry of scheduleEntries) {
+      const [tripId, serviceId, departureSeconds, entryDirectionId, headsignIndex] = entry;
+      if (!isServiceActive(serviceId, serviceDate, transitData.CALENDARS, transitData.EXCEPTIONS)) continue;
+      if (directionId !== null && directionId !== undefined && entryDirectionId !== directionId) continue;
+      const headsign = transitData.HEADSIGNS[headsignIndex] || "";
+      if (destinationQuery && !headsign.toLowerCase().includes(destinationQuery)) continue;
+
+      const departureDate = new Date(serviceDate.getTime());
+      departureDate.setSeconds(departureSeconds);
+      const departureEpoch = Math.floor(departureDate.getTime() / 1000);
+      if (departureEpoch < nowSeconds - 60 || departureEpoch > nowSeconds + horizonSeconds) continue;
+
+      departures.push({
+        time: departureEpoch,
+        tripId,
+        routeId: options.routeId || "",
+        hasDelay: false,
+        kind: "scheduled",
+        headsign,
+      });
+    }
+  }
+
+  departures.sort((left, right) => left.time - right.time);
+  return departures;
+}
+
+function mergeDepartures(realtime, scheduled) {
+  const byTrip = {};
+  for (const departure of scheduled) byTrip[departure.tripId] = departure;
+  for (const departure of realtime) byTrip[departure.tripId] = departure;
+  return Object.values(byTrip).sort((left, right) => left.time - right.time);
 }
 
 function calculateCatchable(departures, options) {
@@ -292,6 +372,7 @@ function parseWidgetParameter(value) {
       walkingMinutes: parts[4],
       bufferMinutes: parts[5],
       directionId: parts[6],
+      headsignContains: parts[7],
     };
   }
 
@@ -307,6 +388,7 @@ function parseWidgetParameter(value) {
       directionValue === "" || directionValue === null || directionValue === undefined
         ? null
         : Number(directionValue),
+    headsignContains: String(raw.headsignContains || raw.destination || "").trim(),
   };
 
   if (!result.route) throw new Error("A route number is required");
@@ -336,7 +418,9 @@ function stableHash(value) {
 module.exports = {
   calculateCatchable,
   decodeGtfsRealtime,
+  findScheduledDepartures,
   findDepartures,
+  mergeDepartures,
   normalizeRoute,
   parseWidgetParameter,
   stableHash,

@@ -50,6 +50,7 @@ assert.deepEqual(pipeConfig, {
   walkingMinutes: 7,
   bufferMinutes: 2,
   directionId: 0,
+  headsignContains: "",
 });
 
 const jsonConfig = Core.parseWidgetParameter(
@@ -57,6 +58,9 @@ const jsonConfig = Core.parseWidgetParameter(
 );
 assert.equal(jsonConfig.route, "R1");
 assert.equal(jsonConfig.stopCode, "50002");
+
+const destinationConfig = Core.parseWidgetParameter("Campus|49|61218|UBC|0|0|1|UBC");
+assert.equal(destinationConfig.headsignContains, "UBC");
 
 const feed = Core.decodeGtfsRealtime(buildFeed());
 assert.equal(feed.timestamp, 1_900);
@@ -89,5 +93,30 @@ const tooLate = Core.calculateCatchable(departures, {
   limit: 3,
 });
 assert.equal(tooLate.length, 0);
+
+const scheduled = Core.findScheduledDepartures(
+  [["scheduled-trip", "weekday", 21 * 3600 + 15 * 60, 1, 0]],
+  {
+    HEADSIGNS: ["49 49TH Avenue/To UBC Exchange"],
+    CALENDARS: { weekday: [1, 1, 1, 1, 1, 0, 0, "20260907", "20270103"] },
+    EXCEPTIONS: {},
+  },
+  {
+    nowDate: new Date(2026, 10, 9, 21, 13, 0),
+    directionId: 1,
+    headsignContains: "UBC",
+    routeId: "6636",
+  }
+);
+assert.equal(scheduled.length, 1);
+assert.equal(scheduled[0].kind, "scheduled");
+assert.equal(Math.round((scheduled[0].time - new Date(2026, 10, 9, 21, 13, 0).getTime() / 1000) / 60), 2);
+
+const merged = Core.mergeDepartures(
+  [{ ...scheduled[0], time: scheduled[0].time + 60, kind: "realtime" }],
+  scheduled
+);
+assert.equal(merged.length, 1);
+assert.equal(merged[0].kind, "realtime");
 
 console.log("Transit core tests passed");
