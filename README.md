@@ -23,10 +23,10 @@ That's the idea behind this project.
 <table>
   <tr>
     <td align="center" valign="middle" width="50%">
-      <img src="./assets/edit-screen.jpg" alt="Form for adding or editing a saved bus" width="100%">
+      <img src="./assets/edit-screen-preview.jpg" alt="Form for adding or editing a saved bus" width="100%">
     </td>
     <td align="center" valign="middle" width="50%">
-      <img src="./assets/example-widget.jpg" alt="Transit widget showing three upcoming departures and leave times" width="100%">
+      <img src="./assets/example-widget-preview.jpg" alt="Transit widget showing three upcoming departures and leave times" width="100%">
     </td>
   </tr>
   <tr>
