@@ -8,16 +8,19 @@ The widget answers one small question:
 
 > Which of my regular buses can I realistically catch, and when should I leave?
 
-## Why did I build this?
+## MVP features
 
-I don't take public transit very often, but when I do, it's usually to familiar places like UBC, work, or a SkyTrain station. For these trips, I tend to take the same routes - the 49, the R4 etc.
-
-Yet every time I'm about to leave, I still find myself opening Google Maps or a transit app just to check when the next bus arrives.
-
-It's a small inconvenience, but one I thought could be avoided. Instead of opening an app and searching for the same route every time, what if I could just glance at my lock screen and know when to leave?
-
-That's the idea behind this project.
-
+- Centrally adds, edits, removes, and switches between any number of saved buses
+- Uses TransLink's supported GTFS-Realtime v3 feed
+- Combines realtime predictions with scheduled fallback for the bundled personal stops
+- Accepts the familiar route number and five-digit number printed on the stop sign
+- Shows the next two or three catchable buses
+- Calculates `leave in` from walking time plus a safety buffer
+- Filters short-turn trips with an optional destination keyword
+- Caches the last successful result and clearly marks cached or stale information
+- Stores the TransLink API key in the iPhone Keychain, not in the repository
+- Supports Home Screen and Lock Screen Scriptable widgets
+- Offers active-bus, automatic most-urgent, and multi-bus dashboard modes
 
 ## What you need
 
@@ -32,7 +35,9 @@ That's the idea behind this project.
 
 ### 1. Copy the scripts
 
-Copy all three JavaScript files into the same Scriptable folder in iCloud Drive or in the Files app. A Scriptable folder will be automatically created once you download the app. The files must keep their original names because the main script imports the other
+Copy all three JavaScript files into the same Scriptable folder under either
+**On My iPhone** or iCloud Drive.
+The files must keep their original names because the main script imports the other
 two by name.
 
 If your Mac and iPhone use the same iCloud account, the easiest path is:
@@ -47,7 +52,8 @@ iCloud Drive/
 
 ### 2. Complete the one-time setup
 
-Open Scriptable and run **TransitWidget** once. It asks for:
+Open Scriptable and run **TransitWidget** once. The central manager lets you add,
+edit, remove, or switch between saved buses. Each saved bus includes:
 
 - Your TransLink API key
 - A short name such as `To campus`
@@ -57,9 +63,11 @@ Open Scriptable and run **TransitWidget** once. It asks for:
 - Walking time
 - Safety buffer
 - An optional GTFS direction ID (`0` or `1`)
+- An optional destination keyword such as `UBC` or `Metrotown`
 
 Most physical stops serve one direction, so leave the direction ID blank unless
-the widget shows trips for both directions.
+the widget shows trips for both directions. Use a destination keyword when a route
+has short-turn trips that do not reach the desired destination.
 
 The API key is stored in the iPhone Keychain. It is never added to a script or
 written into the Git repository.
@@ -71,24 +79,42 @@ written into the Git repository.
 3. Find **Scriptable** and select a small or medium widget.
 4. Long-press the new widget and choose **Edit Widget**.
 5. Set **Script** to `TransitWidget`.
-6. Leave **Parameter** empty to use the trip saved during setup.
+6. Choose a display mode in **Parameter**:
+
+   - Leave empty to show the active bus selected in Scriptable.
+   - `auto` to show whichever saved bus has the most urgent leave time.
+   - `all` in a medium widget to show up to three saved buses together.
+   - `favorite:Home via 49` to pin one saved bus by name.
 
 You can now check departures without opening Scriptable. Tapping the widget opens
 the TransLink schedule page for the configured stop.
 
-## Add another trip
+## Manage saved buses
 
-Add another Scriptable widget and put a pipe-separated configuration in its
-**Parameter** field:
+Run `TransitWidget` inside Scriptable to open the manager. It provides actions to:
+
+- Preview the active bus
+- Switch the active bus
+- Add another bus
+- Edit or remove the active bus
+- Update the API key
+
+The empty-parameter Home Screen widget follows the active selection. Scriptable
+does not provide true interactive next/previous controls inside a widget, so
+switching manually opens the central manager. The `auto` mode avoids manual
+switching by selecting the most urgent saved bus whenever the widget refreshes.
+
+For backwards compatibility, a widget can still contain an ad-hoc pipe-separated
+configuration:
 
 ```text
-To campus|49|50001|UBC|7|2|
+To campus|49|61218|UBC|0|0|1|UBC
 ```
 
 The fields are:
 
 ```text
-name|route|stop number|direction label|walking minutes|buffer minutes|direction ID
+name|route|stop number|direction label|walking minutes|buffer minutes|direction ID|destination keyword
 ```
 
 Direction ID is optional. The same configuration can also be supplied as JSON:
@@ -101,11 +127,29 @@ Direction ID is optional. The same configuration can also be supplied as JSON:
   "direction": "UBC",
   "walkingMinutes": 7,
   "bufferMinutes": 2,
-  "directionId": 0
+  "directionId": 1,
+  "headsignContains": "UBC"
 }
 ```
 
 Every widget uses the same API key stored during the one-time setup.
+
+## Lock Screen
+
+On iOS 16 or later, add a Scriptable widget to the Lock Screen and select
+`TransitWidget`. Inline, circular, and rectangular layouts are supported. The same
+parameter modes work, although `auto` or one named favourite fits best in the
+limited Lock Screen space.
+
+## Refresh behaviour
+
+The script asks iOS to refresh after ten minutes, but iOS ultimately decides when
+Home Screen widgets run. The footer always shows whether the result came from the
+live feed, the local cache, or is stale, along with the last successful update time.
+
+TransLink currently allows up to 1,000 API requests per day per key. A single widget
+requesting a ten-minute refresh stays well below that limit, but iOS timing and
+multiple widget instances can change the actual total.
 
 ## Development
 
@@ -116,7 +160,9 @@ npm test
 ```
 
 `TransitWidgetData.js` contains a generated lookup from public stop and route labels
-to internal GTFS identifiers. To rebuild it from TransLink's latest static feed:
+to internal GTFS identifiers. It also contains compact scheduled fallback data for
+the stops listed in `data/schedule-stops.json`. To rebuild it from TransLink's latest
+static feed:
 
 ```bash
 curl -sS https://gtfs-static.translink.ca/gtfs/google_transit.zip \
@@ -127,6 +173,19 @@ npm run update-data -- /tmp/translink-google-transit.zip
 Commit the regenerated `scriptable/TransitWidgetData.js` file. Do not commit an API
 key or personal local configuration.
 
+## MVP limitations
+
+- Scriptable and iOS control the actual widget refresh schedule.
+- The bundled stop and route lookup should be regenerated when TransLink changes its
+  static GTFS identifiers.
+- Scheduled fallback is bundled only for stops in `data/schedule-stops.json`; other
+  stops use realtime data and cache until they are added to that list and regenerated.
+- The MVP does not yet show service alerts.
+- Manual switching happens in Scriptable; Scriptable does not expose native
+  interactive buttons for changing a script widget's stored selection in place.
+- A full GTFS-Realtime feed is larger than the retired stop-specific RTTI response;
+  older phones may occasionally fall back to the cached result under memory pressure.
+- The widget is listed under Scriptable rather than under a custom App Store name.
 
 ## TransLink data attribution
 
