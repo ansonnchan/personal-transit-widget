@@ -1,0 +1,10 @@
+{
+  "name": "personal-transit-widget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A personal TransLink Home Screen widget for Scriptable.",
+  "scripts": {
+    "test": "node tests/transit-core.test.js",
+    "update-data": "node scripts/generate-static-data.mjs"
+  }
+}

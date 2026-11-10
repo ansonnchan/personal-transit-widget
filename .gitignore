@@ -1,0 +1,5 @@
+.DS_Store
+google_transit.zip
+gtfs/
+*.local.js
+*.secret.js
